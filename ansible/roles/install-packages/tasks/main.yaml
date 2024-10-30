@@ -1,0 +1,10 @@
+---
+- name: Install required packages
+  dnf:
+    name:
+      - google-chrome-stable
+      - bzip2
+      - perl
+    state: present
+    use_backend: dnf4
+  

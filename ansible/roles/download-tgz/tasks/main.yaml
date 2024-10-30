@@ -1,0 +1,11 @@
+---
+- name: Download the .tgz file
+  ansible.builtin.get_url:
+    url: http://www.sbeams.org/sample_data/Microarray/External_test_data.tar.gz
+    dest: /var/tmp/External_test_data.tar.gz
+    
+- name: Extract the .tgz file
+  ansible.builtin.unarchive:
+    src: /var/tmp/External_test_data.tar.gz
+    dest: /var/tmp
+    remote_src: yes

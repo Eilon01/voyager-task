@@ -60,8 +60,13 @@ resource "aws_security_group" "ssh_access" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
-
 # Security group for HTTP and HTTPS access
 resource "aws_security_group" "web_access" {
   name_prefix = "allow_http_https"
@@ -74,12 +79,17 @@ resource "aws_security_group" "web_access" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
     description = "Allow HTTPS"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -96,6 +106,12 @@ resource "aws_security_group" "k8s_api_access" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  } 
 }
 
 # Generate SSH key pair
@@ -131,14 +147,16 @@ resource "aws_instance" "centos_instance" {
   ami             = "ami-0f43e505404dec19c" # CentOS Stream 8
   instance_type   = "t2.micro"
   key_name        = aws_key_pair.ec2_key_pair.key_name
-  security_groups = [
-    aws_security_group.ssh_access.name,
-    aws_security_group.web_access.name,
-    aws_security_group.k8s_api_access.name
+  subnet_id = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [
+    aws_security_group.ssh_access.id,
+    aws_security_group.web_access.id,
+    aws_security_group.k8s_api_access.id
   ]
 
   root_block_device {
-    volume_size = 8
+    delete_on_termination = true
+    volume_size = 10
   }
 
   tags = {
@@ -167,6 +185,13 @@ resource "aws_instance" "centos_instance" {
               echo "${tls_private_key.ssh_key.public_key_openssh}" > /home/dev/.ssh/authorized_keys
               chown dev:dev /home/dev/.ssh/authorized_keys
               chmod 600 /home/dev/.ssh/authorized_keys
+              
+              # add dev user to sudoers and allow passwordless sudo
+              # sudo usermod -aG wheel dev
+              # echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
+
+              # Install Python for Ansible
+              sudo dnf install python3
 
               # Format and mount the additional disks
               mkfs -t ext4 /dev/xvdb
@@ -184,9 +209,54 @@ resource "aws_eip" "elastic_ip" {
   count      = 2
   instance   = aws_instance.centos_instance[count.index].id
   domain    = "vpc"
-  depends_on = [aws_instance.centos_instance]
 }
 
-output "instance_public_ips" {
-  value = { for instance in aws_instance.centos_instance : instance.id => instance.public_ip }
+# print ip addresses of the instances
+output "instance_elastic_ips" {
+  value = { for idx, eip in aws_eip.elastic_ip : "instance-${idx + 1}" => eip.public_ip }
+}
+
+# Create an Ansible inventory file
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/../ansible/inventory.ini"
+
+  content = <<EOF
+[ec2]
+%{ for eip in aws_eip.elastic_ip ~}
+${eip.public_ip}
+%{ endfor ~}
+EOF
+}
+
+# Wait for ssh to be ready
+resource "null_resource" "run_playbook" {
+  count = length(aws_instance.centos_instance)
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Checking SSH connectivity...'",
+      "uptime",
+      "echo 'SSH connection confirmed for instance ${count.index + 1}'"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "dev"
+      private_key = tls_private_key.ssh_key.private_key_pem
+      host        = aws_eip.elastic_ip[count.index].public_ip
+      timeout     = "3m"
+      agent       = false
+    }
+  }
+
+  # Run Ansible playbook
+  provisioner "local-exec" {
+    command = "ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_file.private_key.filename} ${path.module}/../ansible/playbook.yaml"
+  }
+  
+  depends_on = [
+    aws_instance.centos_instance, 
+    aws_eip.elastic_ip, 
+    local_file.ansible_inventory
+  ]
 }

@@ -1,0 +1,14 @@
+---
+- name: Configure EC2
+  hosts: ec2
+  remote_user: dev
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+  roles:
+  - install-packages
+  - run-chrome
+  - download-tgz
+  - edit-hosts

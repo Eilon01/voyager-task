@@ -1,0 +1,13 @@
+---
+- name: Check if Chrome is installed
+  command: which google-chrome-stable
+  register: chrome_check_installed
+  changed_when: false
+
+- name: Ensure Chrome is running
+  ansible.builtin.shell: "google-chrome-stable &"
+  args:
+    executable: /bin/bash
+  async: 1
+  poll: 0
+  when: chrome_check_installed.rc == 0
