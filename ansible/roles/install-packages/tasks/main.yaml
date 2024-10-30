@@ -1,10 +1,30 @@
 ---
-- name: Install required packages
+- name: Import Google Chrome signing key
+  rpm_key:
+    state: present
+    key: https://dl-ssl.google.com/linux/linux_signing_key.pub
+    
+- name: Download Google Chrome RPM
+  get_url:
+    url: https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+    dest: /tmp/google-chrome-stable_current_x86_64.rpm
+  register: chrome_download
+  until: chrome_download is succeeded
+
+- name: Install Google Chrome
+  dnf:
+    name: /tmp/google-chrome-stable_current_x86_64.rpm
+    state: present
+
+- name: Remove the RPM file
+  file:
+    path: /tmp/google-chrome-stable_current_x86_64.rpm
+    state: absent
+
+- name: Install packages
   dnf:
     name:
-      - google-chrome-stable
       - bzip2
       - perl
     state: present
-    use_backend: dnf4
   

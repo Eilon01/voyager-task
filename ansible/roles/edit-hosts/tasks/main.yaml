@@ -4,7 +4,7 @@
     src: /etc/hosts
     dest: /etc/hosts.bak
     remote_src: yes
-  register: backup_result
+    force: no
 
 - name: Add entries to /etc/hosts
   ansible.builtin.lineinfile:
@@ -15,4 +15,3 @@
     - "1.2.3.4 host1"
     - "3.4.2.1 host2"
     - "5.6.3.2 host3"
-  when: backup_result is succeeded

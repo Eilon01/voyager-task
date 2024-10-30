@@ -1,13 +1,19 @@
 ---
-- name: Check if Chrome is installed
-  command: which google-chrome-stable
-  register: chrome_check_installed
+- name: Install psutil Python library
+  ansible.builtin.yum:
+    name: python3-psutil
+    state: present
+
+- name: Check if Google Chrome is running
+  pids:
+    name: chrome
+  register: chrome_pid
   changed_when: false
 
-- name: Ensure Chrome is running
-  ansible.builtin.shell: "google-chrome-stable &"
+- name: start Chrome
+  ansible.builtin.shell: "google-chrome --headless --disable-gpu --no-sandbox &"
   args:
     executable: /bin/bash
   async: 1
   poll: 0
-  when: chrome_check_installed.rc == 0
+  when: chrome_pid.pids | length == 0

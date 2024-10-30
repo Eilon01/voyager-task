@@ -1,4 +1,5 @@
-./keys
+keys/**
+ansible/inventory.ini
 .DS_Store
 
 

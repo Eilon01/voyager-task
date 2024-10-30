@@ -144,7 +144,7 @@ resource "aws_key_pair" "ec2_key_pair" {
 # Create EC2 instances
 resource "aws_instance" "centos_instance" {
   count           = 2
-  ami             = "ami-0f43e505404dec19c" # CentOS Stream 8
+  ami             = "ami-009f51225716cb42f" # CentOS Stream 9
   instance_type   = "t2.micro"
   key_name        = aws_key_pair.ec2_key_pair.key_name
   subnet_id = aws_subnet.public_subnet.id
@@ -186,9 +186,9 @@ resource "aws_instance" "centos_instance" {
               chown dev:dev /home/dev/.ssh/authorized_keys
               chmod 600 /home/dev/.ssh/authorized_keys
               
-              # add dev user to sudoers and allow passwordless sudo
-              # sudo usermod -aG wheel dev
-              # echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
+              # add dev user to sudoers and allow passwordless sudo for ansible
+              sudo usermod -aG wheel dev
+              echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
 
               # Install Python for Ansible
               sudo dnf install python3
