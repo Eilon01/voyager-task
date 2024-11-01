@@ -25,6 +25,7 @@ To help you find what you need, here is the repository structure:
 - inventory.ini file created with terraform
 - Kubernetes and apache deployed with ansible
 - The playbooks can run with terraform
+- Terraform check ec2 instances can accept ssh connections.
 
 ## How to Run everything
 
