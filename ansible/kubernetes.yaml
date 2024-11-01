@@ -1,0 +1,51 @@
+---
+- name: Configure EC2
+  hosts: ec2[1]
+  remote_user: dev
+  become: true
+  tasks:
+    - name: Add Docker repository
+      command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    - name: Clean all YUM cache
+      command: yum clean all
+
+    - name: Install Docker packages
+      yum:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present 
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Download kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+        dest: /usr/bin/kubectl
+        mode: '0755'
+    
+    - name: Download kind
+      get_url:
+        url: "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64"
+        dest: /usr/bin/kind
+        mode: '0755'
+
+    - name: Create Kind cluster
+      command: kind create cluster --name k8s-kind-cluster
+      ignore_errors: yes # this is for if the cluster already exists
+
+    - name: Copy Apache manifest to EC2 server
+      ansible.builtin.copy:
+        src: ../kubernetes/apache-manifest.yaml
+        dest: /tmp/apache-manifest.yaml
+
+    - name: Apply the manifest
+      command: kubectl apply -f /tmp/apache-manifest.yaml
