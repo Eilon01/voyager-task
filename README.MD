@@ -31,32 +31,32 @@ To help you find what you need, here is the repository structure:
 
 To set up your environment, please follow these steps. Ensure your AWS configuration is set up, and have Ansible and Terraform installed and configured on your local machine before proceeding.
 
-
-1. **Navigate to the Terraform directory**:
-   ```bash
-   cd terraform
-   ```
-
-2. **Initialize Terraform**:
+1. **Initialize Terraform**:
    This command initializes the Terraform configuration.
    ```bash
    terraform init
    ```
 
-3. **Apply the Terraform configuration**:
+2. **Apply the Terraform configuration**:
    This command will create the EC2 instances and necessary resources.
    ```bash
    terraform apply
    ```
 
-4. **Run the Ansible playbook required by the task**:
+3. **Run the Ansible playbook required by the task**:
    After the EC2 instances are up, run the following command to execute the Ansible playbook.
    ```bash
-   ansible-playbook -i ./../ansible/inventory.ini --private-key ./../keys/voyager-key.pem ./../ansible/playbook.yaml
+   ansible-playbook -i inventory.ini --private-key ./../keys/voyager-key.pem playbook.yaml
    ```
 
-5. **Run the Kubernetes setup playbook**:
+4. **Run the Kubernetes setup playbook**:
    To install Kubernetes and deploy Apache, use the following command:
    ```bash
-   ansible-playbook -i ./../ansible/inventory.ini --private-key ./../keys/voyager-key.pem ./../ansible/kubernetes.yaml
+   ansible-playbook -i inventory.ini --private-key ./../keys/voyager-key.pem kubernetes.yaml
    ```
+
+5. **Run the Python application to take snapshots**:
+    To run the Python application for taking snapshots, use the following command:
+    ```bash
+    python app.py
+    ```
