@@ -1,4 +1,4 @@
-keys/**
+keys/voyager**
 ansible/inventory.ini
 .DS_Store
 
