@@ -2,7 +2,11 @@ import boto3
 
 def main():
     # Configure the boto3 EC2 client
-    ec2_client = boto3.client('ec2')
+    try:
+        ec2_client = boto3.client('ec2')
+    except Exception as e:
+        print(f"Error connecting to aws and initializing EC2 client: {e}")
+        raise
 
     # Explain the purpose of the application
     print("""
