@@ -120,6 +120,13 @@ resource "tls_private_key" "ssh_key" {
   rsa_bits  = 4096
 }
 
+# Ensure keys directory exists
+resource "null_resource" "create_keys_directory" {
+  provisioner "local-exec" {
+    command = "mkdir -p ${path.module}/../keys"
+  }
+}
+
 # Save the private key to a local file
 resource "local_file" "private_key" {
   filename = "${path.module}/../keys/voyager-key.pem"
@@ -145,7 +152,7 @@ resource "aws_key_pair" "ec2_key_pair" {
 resource "aws_instance" "centos_instance" {
   count           = 2
   ami             = "ami-009f51225716cb42f" # CentOS Stream 9
-  instance_type   = "t2.micro"
+  instance_type   = "t3.small"
   key_name        = aws_key_pair.ec2_key_pair.key_name
   subnet_id = aws_subnet.public_subnet.id
   vpc_security_group_ids = [
@@ -228,8 +235,8 @@ ${eip.public_ip}
 EOF
 }
 
-# Wait for ssh to be ready
-resource "null_resource" "run_playbook" {
+# # Wait for ssh to be ready
+resource "null_resource" "wait_for_ssh" {
   count = length(aws_instance.centos_instance)
 
   provisioner "remote-exec" {
@@ -248,11 +255,6 @@ resource "null_resource" "run_playbook" {
       agent       = false
     }
   }
-
-  # Run Ansible playbook
-  provisioner "local-exec" {
-    command = "ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_file.private_key.filename} ${path.module}/../ansible/playbook.yaml"
-  }
   
   depends_on = [
     aws_instance.centos_instance, 
@@ -260,3 +262,22 @@ resource "null_resource" "run_playbook" {
     local_file.ansible_inventory
   ]
 }
+
+
+# # Run Ansible playbook
+# resource "null_resource" "run_playbook" {
+#   provisioner "local-exec" {
+#     command = "ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_file.private_key.filename} ${path.module}/../ansible/playbook.yaml"
+  
+#   depends_on = [null_resource.wait_for_ssh]
+#   }
+# }
+
+# # Run Kubernetes playbook
+# resource "null_resource" "setup_kubernetes" {
+#   provisioner "local-exec" {
+#     command = "ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_file.private_key.filename} ${path.module}/../ansible/kubernetes.yaml"
+#   }
+  
+#   depends_on = [null_resource.run_playbook]
+# }
