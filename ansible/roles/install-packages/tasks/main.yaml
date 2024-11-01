@@ -9,12 +9,12 @@
     url: https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
     dest: /tmp/google-chrome-stable_current_x86_64.rpm
   register: chrome_download
-  until: chrome_download is succeeded
 
 - name: Install Google Chrome
   dnf:
     name: /tmp/google-chrome-stable_current_x86_64.rpm
     state: present
+  when: chrome_download is succeeded
 
 - name: Remove the RPM file
   file:
